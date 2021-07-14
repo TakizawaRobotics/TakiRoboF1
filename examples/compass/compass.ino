@@ -4,7 +4,7 @@ takiroboF1 trf(x,y,s); //()の中は任意で書き変えてください。詳�
 
 void setup()
 {
-  trf.initialize();
+  trf.init();
   //ここは電源を入れてから一度しか実行されません。
   Serial.begin(9600);
 }

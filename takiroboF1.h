@@ -6,16 +6,18 @@ class takiroboF1
 public:
     takiroboF1(float MedianX, float MedianY, float Scale);
     takiroboF1();
-    double dist();
-    void motor(double spd1, double spd2, double spd3);
-    int getIr(int num);
-    int getLine(int num);
+    void init();
+    void calibCompass();
     void irUpdate();
     void lineUpdate();
-    float getFlontAzim();
+    int getIr(int num);
+    int getLine(int num);
+    float getStartAzim();
     float getAzim();
-    void calibCompass();
-    void initialize();
+    double getUSS();
+    void motor(double spd1, double spd2, double spd3);
+
+    
 
 private:
     double flontDeg = 0;

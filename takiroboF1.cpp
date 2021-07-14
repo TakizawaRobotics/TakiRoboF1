@@ -2,24 +2,25 @@
 #include <avr/io.h>
 #include <Wire.h>
 
-#define mt1cw 3
-#define mt1ccw 5
-#define mt2cw 10
-#define mt2ccw 9
-#define mt3cw 11
-#define mt3ccw 6
-#define cw 1  //not pin number
-#define ccw 2 //not pin number
-#define echo 12
-#define trig 13
-#define linePin 1
-#define IR1 8
-#define IR2 17
-#define IR3 16
-#define IR4 14
-#define LED 4
-#define framenum 5
-#define addr 0x0D
+#define MT1CW           3
+#define MT1CCW          5
+#define MT2CW           10
+#define MT2CCW          9
+#define MT3CW           11
+#define MT3CCW          6
+#define CW              1  //not pin number
+#define CCW             2 //not pin number
+#define ECHO            12
+#define TRIG            13
+#define LINE_PIN        1
+#define IR1             8
+#define IR2             17
+#define IR3             16
+#define IR4             14
+#define LED             4
+#define FRAMENUM        5
+#define HMC5883L_ADDR   0x0D
+#define LINE_ADDR       0x08
 
 boolean initComp = false;
 
@@ -39,7 +40,6 @@ robot::takiroboF1()
 
 void robot::motor(double spd1, double spd2, double spd3)
 {
-  //int offtime = 0;
   static int mt_state[3];
   double mt_power[6];
 
@@ -50,10 +50,9 @@ void robot::motor(double spd1, double spd2, double spd3)
     {
       mt_power[i * 2] = spd[i];
       mt_power[i * 2 + 1] = 0;
-      if (mt_state[i] == ccw)
+      if (mt_state[i] == CCW)
       {
-        //offtime = 1;
-        mt_state[i] = cw;
+        mt_state[i] = CW;
       }
       mt_state[i] = 1;
     }
@@ -61,10 +60,9 @@ void robot::motor(double spd1, double spd2, double spd3)
     {
       mt_power[i * 2] = 0;
       mt_power[i * 2 + 1] = -spd[i];
-      if (mt_state[i] == cw)
+      if (mt_state[i] == CW)
       {
-        //offtime = 1;
-        mt_state[i] = ccw;
+        mt_state[i] = CCW;
       }
     }
     else
@@ -74,18 +72,7 @@ void robot::motor(double spd1, double spd2, double spd3)
       mt_state[i] = 0;
     }
   }
-  /*
-  if (offtime == 1)
-  {
-    digitalWrite(mt1cw, LOW);
-    digitalWrite(mt1ccw, LOW);
-    digitalWrite(mt2cw, LOW);
-    digitalWrite(mt2ccw, LOW);
-    digitalWrite(mt3cw, LOW);
-    digitalWrite(mt3ccw, LOW);
-    delayMicroseconds(100);
-  }
-  */
+  
   TCCR0A = 0b10100011;
   TCCR0B = 0b00000011;
   TCCR1A = 0b10100010;
@@ -94,30 +81,30 @@ void robot::motor(double spd1, double spd2, double spd3)
   TCCR2B = 0b00000100;
   ICR1 = 255;
 
-  OCR2B = (unsigned int)(mt_power[0]); //3  mt1cw  980hz
-  OCR0B = (unsigned int)(mt_power[1]); //5  mt1ccw 980hz
-  OCR1A = (unsigned int)(mt_power[3]); //(1020*(mt_power[3]/255));//10  mt2cw   490hz
-  OCR1B = (unsigned int)(mt_power[2]); //(1020*(mt_power[2]/255));//9   mt2ccw  490hz
-  OCR2A = (unsigned int)(mt_power[4]); //11 mt3cw  980hz
-  OCR0A = (unsigned int)(mt_power[5]); //6  mt3ccw 980hz
+  OCR2B = (unsigned int)(mt_power[0]); //3  MT1CW  980hz
+  OCR0B = (unsigned int)(mt_power[1]); //5  MT1CCW 980hz
+  OCR1A = (unsigned int)(mt_power[3]); //(1020*(mt_power[3]/255));//10  MT2CW   490hz
+  OCR1B = (unsigned int)(mt_power[2]); //(1020*(mt_power[2]/255));//9   MT2CCW  490hz
+  OCR2A = (unsigned int)(mt_power[4]); //11 MT3CW  980hz
+  OCR0A = (unsigned int)(mt_power[5]); //6  MT3CCW 980hz
 }
 
-double robot::dist()
+double robot::getUSS()
 {
-  digitalWrite(trig, LOW);
+  digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
+  digitalWrite(TRIG, HIGH);
   delayMicroseconds(10);
-  digitalWrite(trig, LOW);
-  unsigned long durationMS = pulseIn(echo, HIGH);
-  double distance = durationMS / 2.0 * 0.034;
-  if (distance == 2 || distance > 400)
+  digitalWrite(TRIG, LOW);
+  unsigned long durationMS = pulseIn(ECHO, HIGH);
+  double getUSSance = (durationMS / 2.0) * 0.034;
+  if ((getUSSance == 2) || (getUSSance > 400))
   {
     return -1.0;
   }
   else
   {
-    return distance;
+    return getUSSance;
   }
 }
 
@@ -128,7 +115,7 @@ int robot::getLine(int num)
 
 void robot::lineUpdate()
 {
-  Wire.requestFrom(8, 4);
+  Wire.requestFrom(LINE_ADDR, 4);
   int i = 0;
   while (Wire.available())
   {
@@ -192,17 +179,17 @@ void robot::irUpdate()
   }
 }
 
-float robot::getFlontAzim()
+float robot::getStartAzim()
 {
   return flontDeg;
 }
 
 float robot::getAzim()
 {
-  Wire.beginTransmission(addr);
+  Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x00);
   Wire.endTransmission();
-  Wire.requestFrom(addr, 6);
+  Wire.requestFrom(HMC5883L_ADDR, 6);
   while (Wire.available())
   {
     rawData[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
@@ -212,7 +199,6 @@ float robot::getAzim()
   int data[2] = {};
   data[0] = (rawData[0] - medianX);
   data[1] = (rawData[1] - medianY) * scale;
-  //Serial.println(atan2(data[1], data[0]) * 180.0 / PI);
   return atan2(data[1], data[0]) * 180.0 / PI;
 }
 
@@ -274,18 +260,17 @@ void robot::calibCompass()
 
 void interrupt()
 {
-  digitalWrite(mt1cw, LOW);
-  digitalWrite(mt1ccw, LOW);
-  digitalWrite(mt2cw, LOW);
-  digitalWrite(mt2ccw, LOW);
-  digitalWrite(mt3cw, LOW);
-  digitalWrite(mt3ccw, LOW); //つまりmotor(0, 0, 0)と同じ
-  //digitalWrite(LED, LOW);    //割り込み中はLED2が消えます。
+  digitalWrite(MT1CW, LOW);
+  digitalWrite(MT1CCW, LOW);
+  digitalWrite(MT2CW, LOW);
+  digitalWrite(MT2CCW, LOW);
+  digitalWrite(MT3CW, LOW);
+  digitalWrite(MT3CCW, LOW); //つまりmotor(0, 0, 0)と同じ
   digitalWrite(LED, HIGH); //割り込み中はLED2が点灯します。
   initComp = true;
 }
 
-void robot::initialize()
+void robot::init()
 {
   attachInterrupt(0, interrupt, LOW);
   pinMode(LED, OUTPUT);
@@ -293,25 +278,25 @@ void robot::initialize()
   pinMode(IR2, INPUT);
   pinMode(IR3, INPUT);
   pinMode(IR4, INPUT);
-  pinMode(mt1cw, OUTPUT);
-  pinMode(mt1ccw, OUTPUT);
-  pinMode(mt2cw, OUTPUT);
-  pinMode(mt2ccw, OUTPUT);
-  pinMode(mt3cw, OUTPUT);
-  pinMode(mt3ccw, OUTPUT);
-  digitalWrite(mt1cw, LOW);
-  digitalWrite(mt1ccw, LOW);
-  digitalWrite(mt2cw, LOW);
-  digitalWrite(mt2ccw, LOW);
-  digitalWrite(mt3cw, LOW);
-  digitalWrite(mt3ccw, LOW);
+  pinMode(MT1CW, OUTPUT);
+  pinMode(MT1CCW, OUTPUT);
+  pinMode(MT2CW, OUTPUT);
+  pinMode(MT2CCW, OUTPUT);
+  pinMode(MT3CW, OUTPUT);
+  pinMode(MT3CCW, OUTPUT);
+  digitalWrite(MT1CW, LOW);
+  digitalWrite(MT1CCW, LOW);
+  digitalWrite(MT2CW, LOW);
+  digitalWrite(MT2CCW, LOW);
+  digitalWrite(MT3CW, LOW);
+  digitalWrite(MT3CCW, LOW);
   Wire.begin();
   Serial.begin(9600);
-  Wire.beginTransmission(addr);
+  Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x0B);
   Wire.write(0x01);
   Wire.endTransmission();
-  Wire.beginTransmission(addr);
+  Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x09);
   Wire.write(0x1D);
   Wire.endTransmission();
