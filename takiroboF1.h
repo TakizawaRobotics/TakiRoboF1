@@ -17,10 +17,8 @@ public:
     double getUSS();
     void motor(double spd1, double spd2, double spd3);
 
-    
-
 private:
-    double flontDeg = 0;
+    double starting_position_deg = 0;
     int _ir1;
     int _ir2;
     int _ir3;

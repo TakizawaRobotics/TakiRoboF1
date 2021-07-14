@@ -97,14 +97,14 @@ double robot::getUSS()
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
   unsigned long durationMS = pulseIn(ECHO, HIGH);
-  double getUSSance = (durationMS / 2.0) * 0.034;
-  if ((getUSSance == 2) || (getUSSance > 400))
+  double distance = (durationMS / 2.0) * 0.034;
+  if ((distance == 2) || (distance > 400))
   {
     return -1.0;
   }
   else
   {
-    return getUSSance;
+    return distance;
   }
 }
 
@@ -181,7 +181,7 @@ void robot::irUpdate()
 
 float robot::getStartAzim()
 {
-  return flontDeg;
+  return starting_position_deg;
 }
 
 float robot::getAzim()
@@ -302,5 +302,5 @@ void robot::init()
   Wire.endTransmission();
   boolean calibComp = false;
   getAzim();
-  flontDeg = getAzim();
+  starting_position_deg = getAzim();
 }
