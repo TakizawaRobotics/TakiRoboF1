@@ -4,10 +4,10 @@
 class takiroboF1
 {
 public:
-    takiroboF1(float MedianX, float MedianY, float Scale);
+    takiroboF1(float median_x, float median_y, float Scale);
     takiroboF1();
     void init();
-    void calibCompass();
+    void calib_compass();
     void irUpdate();
     void lineUpdate();
     int getIr(int num);
@@ -23,10 +23,10 @@ private:
     int _ir2;
     int _ir3;
     int _ir4;
-    float medianX;
-    float medianY;
+    float median_x;
+    float median_y;
     float scale;
-    int rawData[3] = {};
+    int raw_data[3] = {};
     int line[4];
 
 };

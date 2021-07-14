@@ -22,19 +22,19 @@
 #define HMC5883L_ADDR   0x0D
 #define LINE_ADDR       0x08
 
-boolean initComp = false;
+boolean init_comp = false;
 
-robot::takiroboF1(float MedianX, float MedianY, float Scale)
+robot::takiroboF1(float median_x, float median_y, float Scale)
 {
-  medianX = medianY;
-  medianY = MedianY;
+  median_x = median_y;
+  median_y = median_y;
   scale = scale;
 }
 
 robot::takiroboF1()
 {
-  medianX = 0;
-  medianY = 0;
+  median_x = 0;
+  median_y = 0;
   scale = 1;
 }
 
@@ -96,8 +96,8 @@ double robot::getUSS()
   digitalWrite(TRIG, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
-  unsigned long durationMS = pulseIn(ECHO, HIGH);
-  double distance = (durationMS / 2.0) * 0.034;
+  unsigned long duration_ms = pulseIn(ECHO, HIGH);
+  double distance = (duration_ms / 2.0) * 0.034;
   if ((distance == 2) || (distance > 400))
   {
     return -1.0;
@@ -192,63 +192,63 @@ float robot::getAzimuth()
   Wire.requestFrom(HMC5883L_ADDR, 6);
   while (Wire.available())
   {
-    rawData[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-    rawData[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-    rawData[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+    raw_data[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+    raw_data[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+    raw_data[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
   }
   int data[2] = {};
-  data[0] = (rawData[0] - medianX);
-  data[1] = (rawData[1] - medianY) * scale;
+  data[0] = (raw_data[0] - median_x);
+  data[1] = (raw_data[1] - median_y) * scale;
   return atan2(data[1], data[0]) * 180.0 / PI;
 }
 
-void robot::calibCompass()
+void robot::calib_compass()
 {
   int start = millis();
   int finish;
-  int nowCalib = 0;
+  int now_calib = 0;
   float median[2] = {};
-  float calibData[4] = {};
+  float calib_data[4] = {};
   float scale = 0;
   while (1)
   {
     dataGet();
     delay(200);
     Serial.println("robot is calibrating now");
-    if (rawData[0] < calibData[0])
+    if (raw_data[0] < calib_data[0])
     {
-      calibData[0] = rawData[0];
-      nowCalib = 1;
+      calib_data[0] = raw_data[0];
+      now_calib = 1;
       //Xmin
     }
-    if (rawData[0] > calibData[1])
+    if (raw_data[0] > calib_data[1])
     {
-      calibData[1] = rawData[0];
-      nowCalib = 1;
+      calib_data[1] = raw_data[0];
+      now_calib = 1;
       //Xmax
     }
-    if (rawData[1] < calibData[2])
+    if (raw_data[1] < calib_data[2])
     {
-      calibData[2] = rawData[1];
-      nowCalib = 1;
+      calib_data[2] = raw_data[1];
+      now_calib = 1;
       //Ymin
     }
-    if (rawData[1] > calibData[3])
+    if (raw_data[1] > calib_data[3])
     {
-      calibData[3] = rawData[1];
-      nowCalib = 1;
+      calib_data[3] = raw_data[1];
+      now_calib = 1;
       //Ymax
     }
     finish = millis();
-    if ((finish - start) > 8000 && nowCalib == 0)
+    if ((finish - start) > 8000 && now_calib == 0)
     {
       break;
     }
-    nowCalib = 0;
+    now_calib = 0;
   }
-  median[0] = (calibData[0] + calibData[1]) / 2;
-  median[1] = (calibData[2] + calibData[3]) / 2;
-  scale = ((calibData[1] - calibData[0]) / (calibData[3] - calibData[2]));
+  median[0] = (calib_data[0] + calib_data[1]) / 2;
+  median[1] = (calib_data[2] + calib_data[3]) / 2;
+  scale = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
   Serial.print("(");
   Serial.print(median[0]);
   Serial.print(",");
@@ -266,8 +266,8 @@ void interrupt()
   digitalWrite(MT2CCW, LOW);
   digitalWrite(MT3CW, LOW);
   digitalWrite(MT3CCW, LOW); //つまりmotor(0, 0, 0)と同じ
-  digitalWrite(LED, HIGH); //割り込み中はLED2が点灯します。
-  initComp = true;
+  digitalWrite(LED, LOW); //割り込み中はLED2が消灯します。
+  init_comp = true;
 }
 
 void robot::init()
@@ -290,8 +290,8 @@ void robot::init()
   digitalWrite(MT2CCW, LOW);
   digitalWrite(MT3CW, LOW);
   digitalWrite(MT3CCW, LOW);
-  Wire.begin();
   Serial.begin(9600);
+  Wire.begin();
   Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x0B);
   Wire.write(0x01);
@@ -300,7 +300,7 @@ void robot::init()
   Wire.write(0x09);
   Wire.write(0x1D);
   Wire.endTransmission();
-  boolean calibComp = false;
+  boolean calib_comp = false;
   getAzimuth();
   starting_position_deg = getAzimuth();
 }

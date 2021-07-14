@@ -8,7 +8,7 @@ takiroboF1 trf;
 void setup() {
   // put your setup code here, to run once:
   trf.init();
-  trf.calibCompass();
+  trf.calib_compass();
 }
 
 void loop() {

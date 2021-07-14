@@ -15,5 +15,5 @@ irUpdate	KEYWORD2
 lineUpdate  KEYWORD2
 getStartingAzimuth	KEYWORD2
 getAzimuth	KEYWORD2
-calibCompass    KEYWORD2
+calib_compass    KEYWORD2
 init	KEYWORD2
