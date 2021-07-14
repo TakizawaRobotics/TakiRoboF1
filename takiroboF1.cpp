@@ -179,12 +179,12 @@ void robot::irUpdate()
   }
 }
 
-float robot::getStartAzim()
+float robot::getStartingAzimuth()
 {
   return starting_position_deg;
 }
 
-float robot::getAzim()
+float robot::getAzimuth()
 {
   Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x00);
@@ -301,6 +301,6 @@ void robot::init()
   Wire.write(0x1D);
   Wire.endTransmission();
   boolean calibComp = false;
-  getAzim();
-  starting_position_deg = getAzim();
+  getAzimuth();
+  starting_position_deg = getAzimuth();
 }

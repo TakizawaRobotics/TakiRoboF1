@@ -12,8 +12,8 @@ public:
     void lineUpdate();
     int getIr(int num);
     int getLine(int num);
-    float getStartAzim();
-    float getAzim();
+    float getStartingAzimuth();
+    float getAzimuth();
     double getUSS();
     void motor(double spd1, double spd2, double spd3);
 

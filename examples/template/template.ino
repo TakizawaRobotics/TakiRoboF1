@@ -13,6 +13,6 @@ void loop()
 {
   //プログラムはここをループし続けます。
   Serial.print("degree");
-  Serial.println(trf.getAzim());
+  Serial.println(trf.getAzimuth());
   delay(200);
 }
