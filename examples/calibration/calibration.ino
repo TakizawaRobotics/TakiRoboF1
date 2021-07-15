@@ -3,12 +3,12 @@
 */
 #include "takiroboF1.h"
 
-takiroboF1 trf;
+takiroboF1 robot;
 
 void setup() {
   // put your setup code here, to run once:
-  trf.init();
-  trf.calib_compass();
+  robot.init();
+  robot.calib_compass();
 }
 
 void loop() {
