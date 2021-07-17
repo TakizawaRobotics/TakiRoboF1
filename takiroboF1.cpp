@@ -212,7 +212,7 @@ void takiroboF1::calib_compass()
   float scale = 0;
   while (1)
   {
-    dataGet();
+    getAzimuth();
     delay(200);
     Serial.println("robot is calibrating now");
     if (raw_data[0] < calib_data[0])
