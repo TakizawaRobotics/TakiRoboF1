@@ -24,18 +24,18 @@
 
 boolean init_comp = false;
 
-takiroboF1::takiroboF1(float median_x, float median_y, float Scale)
+takiroboF1::takiroboF1(float median_x, float median_y, float scale)
 {
-  median_x = median_y;
-  median_y = median_y;
-  scale = scale;
+  MEDIAN_x = median_x;
+  MEDIAN_y = median_y;
+  SCALE = scale;
 }
 
 takiroboF1::takiroboF1()
 {
-  median_x = 0;
-  median_y = 0;
-  scale = 1;
+  MEDIAN_x = 0;
+  MEDIAN_y = 0;
+  SCALE = 1;
 }
 
 void takiroboF1::motor(double spd1, double spd2, double spd3)
@@ -181,7 +181,7 @@ void takiroboF1::irUpdate()
 
 float takiroboF1::getStartingAzimuth()
 {
-  return takiroboF1::starting_position_deg;
+  return starting_position_deg;
 }
 
 float takiroboF1::getAzimuth()
@@ -197,8 +197,8 @@ float takiroboF1::getAzimuth()
     raw_data[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
   }
   int data[2] = {};
-  data[0] = (raw_data[0] - median_x);
-  data[1] = (raw_data[1] - median_y) * scale;
+  data[0] = (raw_data[0] - MEDIAN_x);
+  data[1] = (raw_data[1] - MEDIAN_y) * SCALE;
   return atan2(data[1], data[0]) * 180.0 / PI;
 }
 
@@ -209,7 +209,7 @@ void takiroboF1::calib_compass()
   int now_calib = 0;
   float median[2] = {};
   float calib_data[4] = {};
-  float scale = 0;
+  float SCALE = 0;
   while (1)
   {
     getAzimuth();
@@ -248,13 +248,13 @@ void takiroboF1::calib_compass()
   }
   median[0] = (calib_data[0] + calib_data[1]) / 2;
   median[1] = (calib_data[2] + calib_data[3]) / 2;
-  scale = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
+  SCALE = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
   Serial.print("(");
   Serial.print(median[0]);
   Serial.print(",");
   Serial.print(median[1]);
   Serial.print(",");
-  Serial.print(scale);
+  Serial.print(SCALE);
   Serial.print(")");
 }
 
@@ -302,5 +302,5 @@ void takiroboF1::init()
   Wire.endTransmission();
   boolean calib_comp = false;
   getAzimuth();
-  takiroboF1::starting_position_deg = getAzimuth();
+  starting_position_deg = getAzimuth();
 }
