@@ -181,7 +181,7 @@ void takiroboF1::irUpdate()
 
 float takiroboF1::getStartingAzimuth()
 {
-  return starting_position_deg;
+  return takiroboF1::starting_position_deg;
 }
 
 float takiroboF1::getAzimuth()
@@ -302,5 +302,5 @@ void takiroboF1::init()
   Wire.endTransmission();
   boolean calib_comp = false;
   getAzimuth();
-  starting_position_deg = getAzimuth();
+  takiroboF1::starting_position_deg = getAzimuth();
 }
