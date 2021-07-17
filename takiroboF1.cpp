@@ -24,21 +24,21 @@
 
 boolean init_comp = false;
 
-robot::takiroboF1(float median_x, float median_y, float Scale)
+takiroboF1::takiroboF1(float median_x, float median_y, float Scale)
 {
   median_x = median_y;
   median_y = median_y;
   scale = scale;
 }
 
-robot::takiroboF1()
+takiroboF1::takiroboF1()
 {
   median_x = 0;
   median_y = 0;
   scale = 1;
 }
 
-void robot::motor(double spd1, double spd2, double spd3)
+void takiroboF1::motor(double spd1, double spd2, double spd3)
 {
   static int mt_state[3];
   double mt_power[6];
@@ -89,7 +89,7 @@ void robot::motor(double spd1, double spd2, double spd3)
   OCR0A = (unsigned int)(mt_power[5]); //6  MT3CCW 980hz
 }
 
-double robot::getUSS()
+double takiroboF1::getUSS()
 {
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
@@ -108,12 +108,12 @@ double robot::getUSS()
   }
 }
 
-int robot::getLine(int num)
+int takiroboF1::getLine(int num)
 {
   return line[num - 1];
 }
 
-void robot::lineUpdate()
+void takiroboF1::lineUpdate()
 {
   Wire.requestFrom(LINE_ADDR, 4);
   int i = 0;
@@ -124,7 +124,7 @@ void robot::lineUpdate()
   }
 }
 
-int robot::getIr(int num)
+int takiroboF1::getIr(int num)
 {
   switch (num)
   {
@@ -146,7 +146,7 @@ int robot::getIr(int num)
   }
 }
 
-void robot::irUpdate()
+void takiroboF1::irUpdate()
 {
   for (int i = 0; i < 500; i++)
   {
@@ -179,12 +179,12 @@ void robot::irUpdate()
   }
 }
 
-float robot::getStartingAzimuth()
+float takiroboF1::getStartingAzimuth()
 {
   return starting_position_deg;
 }
 
-float robot::getAzimuth()
+float takiroboF1::getAzimuth()
 {
   Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x00);
@@ -202,7 +202,7 @@ float robot::getAzimuth()
   return atan2(data[1], data[0]) * 180.0 / PI;
 }
 
-void robot::calib_compass()
+void takiroboF1::calib_compass()
 {
   int start = millis();
   int finish;
@@ -270,7 +270,7 @@ void interrupt()
   init_comp = true;
 }
 
-void robot::init()
+void takiroboF1::init()
 {
   attachInterrupt(0, interrupt, LOW);
   pinMode(LED, OUTPUT);
