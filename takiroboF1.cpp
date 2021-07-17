@@ -300,7 +300,5 @@ void takiroboF1::init()
   Wire.write(0x09);
   Wire.write(0x1D);
   Wire.endTransmission();
-  boolean calib_comp = false;
-  getAzimuth();
   starting_position_deg = getAzimuth();
 }
