@@ -19,10 +19,10 @@ public:
 
 private:
     double starting_position_deg = 0;
-    int _ir1;
-    int _ir2;
-    int _ir3;
-    int _ir4;
+    int _ir1 = 0;
+    int _ir2 = 0;
+    int _ir3 = 0;
+    int _ir4 = 0;
     float MEDIAN_x;
     float MEDIAN_y;
     float SCALE;

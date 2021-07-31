@@ -1,6 +1,6 @@
 #include <takiroboF1.h>
 
-takiroboF1 robot(x,y,s); //()の中は任意で書き変えてください。詳細は取扱説明書参照。
+takiroboF1 robot;
 
 void setup()
 {
@@ -19,6 +19,6 @@ void loop()
   Serial.println(robot.getIr(2));
   Serial.print("back:");
   Serial.println(robot.getIr(3));
-  Serial.print("left:")
+  Serial.print("left:")；
   Serial.println(robot.getIr(4));
 }

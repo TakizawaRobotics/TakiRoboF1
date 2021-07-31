@@ -148,6 +148,11 @@ int takiroboF1::getIr(int num)
 
 void takiroboF1::irUpdate()
 {
+  _ir1 = 0;
+  _ir2 = 0;
+  _ir3 = 0;
+  _ir4 = 0;
+  
   for (int i = 0; i < 500; i++)
   {
     if (digitalRead(IR1) == LOW)
