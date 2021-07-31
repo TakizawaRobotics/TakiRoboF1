@@ -18,7 +18,7 @@ public:
     void motor(double spd1, double spd2, double spd3);
 
 private:
-    double starting_position_deg = 0;
+    float starting_position_deg = 0;
     int _ir1 = 0;
     int _ir2 = 0;
     int _ir3 = 0;

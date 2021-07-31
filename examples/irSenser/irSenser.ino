@@ -13,7 +13,7 @@ void loop()
 {
   //プログラムはここをループし続けます。
   robot.irUpdate();
-  Serial.print("flont:");
+  Serial.print("front:");
   Serial.println(robot.getIr(1));
   Serial.print("right:");
   Serial.println(robot.getIr(2));

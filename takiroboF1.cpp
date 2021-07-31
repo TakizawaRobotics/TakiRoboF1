@@ -72,14 +72,6 @@ void takiroboF1::motor(double spd1, double spd2, double spd3)
       mt_state[i] = 0;
     }
   }
-  
-  TCCR0A = 0b10100011;
-  TCCR0B = 0b00000011;
-  TCCR1A = 0b10100010;
-  TCCR1B = 0b00011011;
-  TCCR2A = 0b10100011;
-  TCCR2B = 0b00000100;
-  ICR1 = 255;
 
   OCR2B = (unsigned int)(mt_power[0]); //3  MT1CW  980hz
   OCR0B = (unsigned int)(mt_power[1]); //5  MT1CCW 980hz
@@ -152,7 +144,7 @@ void takiroboF1::irUpdate()
   _ir2 = 0;
   _ir3 = 0;
   _ir4 = 0;
-  
+
   for (int i = 0; i < 500; i++)
   {
     if (digitalRead(IR1) == LOW)
@@ -278,6 +270,7 @@ void interrupt()
 void takiroboF1::init()
 {
   attachInterrupt(0, interrupt, LOW);
+
   pinMode(LED, OUTPUT);
   pinMode(IR1, INPUT);
   pinMode(IR2, INPUT);
@@ -289,13 +282,14 @@ void takiroboF1::init()
   pinMode(MT2CCW, OUTPUT);
   pinMode(MT3CW, OUTPUT);
   pinMode(MT3CCW, OUTPUT);
+
   digitalWrite(MT1CW, LOW);
   digitalWrite(MT1CCW, LOW);
   digitalWrite(MT2CW, LOW);
   digitalWrite(MT2CCW, LOW);
   digitalWrite(MT3CW, LOW);
   digitalWrite(MT3CCW, LOW);
-  Serial.begin(9600);
+
   Wire.begin();
   Wire.beginTransmission(HMC5883L_ADDR);
   Wire.write(0x0B);
@@ -306,4 +300,14 @@ void takiroboF1::init()
   Wire.write(0x1D);
   Wire.endTransmission();
   starting_position_deg = getAzimuth();
+
+  TCCR0A = 0b10100011;
+  TCCR0B = 0b00000011;
+  TCCR1A = 0b10100010;
+  TCCR1B = 0b00011011;
+  TCCR2A = 0b10100011;
+  TCCR2B = 0b00000100;
+  ICR1 = 255;
+
+  Serial.begin(9600);
 }
