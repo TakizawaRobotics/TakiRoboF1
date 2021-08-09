@@ -19,6 +19,6 @@ void loop()
   Serial.println(robot.getIr(2));
   Serial.print("back:");
   Serial.println(robot.getIr(3));
-  Serial.print("left:")；
+  Serial.print("left:");
   Serial.println(robot.getIr(4));
 }
