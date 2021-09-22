@@ -17,3 +17,6 @@ getStartingAzimuth	KEYWORD2
 getAzimuth	KEYWORD2
 calib_compass    KEYWORD2
 init	KEYWORD2
+getAnalogPin    KEYWORD2
+getDigitalPin   KEYWORD2
+setDigitalPin   KEYWORD2

@@ -6,7 +6,6 @@ void setup()
 {
   robot.init();
   //ここは電源を入れてから一度しか実行されません。
-  Serial.begin(9600);
 }
 
 void loop()

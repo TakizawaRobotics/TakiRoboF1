@@ -14,7 +14,11 @@ void loop() {
     robot.motor(i, i, i);
     delay(40);
   }
-  for (int i = 255; i >= 0; i--) {
+  for (int i = 255; i >= -255; i--) {
+    robot.motor(i, i, i);
+    delay(40);
+  }
+  for (int i = -255; i <= 0; i++) {
     robot.motor(i, i, i);
     delay(40);
   }

@@ -6,7 +6,6 @@ void setup()
 {
   robot.init();
   //ここは電源を入れてから一度しか実行されません。
-  Serial.begin(9600);
 }
 
 void loop()
@@ -19,6 +18,6 @@ void loop()
   Serial.println(robot.getLine(2));
   Serial.print("back:");
   Serial.println(robot.getLine(3));
-  Serial.print("left:")
+  Serial.print("left:");
   Serial.println(robot.getLine(4));
 }
