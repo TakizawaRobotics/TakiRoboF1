@@ -46,7 +46,8 @@
       |analogRead|○|×|×|
       |analogWrite|×|×|×|
       |digitalRead|○|○|○|
-      |digitalWrite|○|○|○|
+      |digitalWrite|○|○|○|  
+
       3番ピンはLED2(左側のLED)と共用になっています。そのため3番ピンを使う場合、インジケーター用のLEDは動かなくなります。1,2番ピンを優先して使うことを推奨します。
     - 1~3番ピンの入出力設定について
         - 1~3番ピンを使用するには入出力の設定を行う必要があります。設定を行うにはプログラム内の  
@@ -59,6 +60,7 @@
           |0|1|2|3|
           |:--:|:--:|:--:|:--:|
           |使用しない|digitalRead|digitalWrite|analogRead|  
+          
           例えば`int hoge[3]={2,1,0}`とした場合、1番ピンはdigitalWrite、2番ピンdigitalRead、3番ピンは使用しないという設定になります。
     - 入出力読み書き用関数
         1. x.getAnalogPin();
