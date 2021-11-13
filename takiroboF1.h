@@ -1,3 +1,17 @@
+/*======================================================================
+Project Name    : takiroboF1
+File Name       : takiroboF1.h
+Encoding        : utf-8
+Creation Date   : c++
+author          : Takumi Yoneda, Hayato Tajiri
+update date     : 2021/11/13 
+ 
+Copyright © <2021> TakizawaRoboticsLLC. All rights reserved.
+ 
+This source code or any portion thereof must not be  
+reproduced or used in any manner whatsoever.
+======================================================================*/
+
 #ifndef _takiroboF1_H_
 #define _takiroboF1_H_
 #include "arduino.h"

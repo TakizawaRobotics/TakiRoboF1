@@ -1,3 +1,17 @@
+/*======================================================================
+Project Name    : takiroboF1
+File Name       : takiroboF1.cpp
+Encoding        : utf-8
+Creation Date   : c++
+author          : Takumi Yoneda, Hayato Tajiri
+update date     : 2021/11/13 
+ 
+Copyright © <2021> TakizawaRoboticsLLC. All rights reserved.
+ 
+This source code or any portion thereof must not be  
+reproduced or used in any manner whatsoever.
+======================================================================*/
+
 #include "takiroboF1.h"
 #include <avr/io.h>
 #include <Wire.h>
@@ -148,7 +162,8 @@ double takiroboF1::getUSS()
 
 int takiroboF1::getLine(int num)
 {
-  return line[num - 1];
+  num = (num-1)%4;
+  return line[num];
 }
 
 void takiroboF1::lineUpdate()
@@ -157,7 +172,7 @@ void takiroboF1::lineUpdate()
   int i = 0;
   while (Wire.available())
   {
-    line[i] = Wire.read();
+    line[i%4] = Wire.read();
     i++;
   }
 }
@@ -229,25 +244,62 @@ float takiroboF1::getStartingAzimuth()
 
 float takiroboF1::getAzimuth()
 {
-  delay(200);
-  Wire.beginTransmission(HMC5883L_ADDR);
-  Wire.write(0x00);
-  Wire.endTransmission();
-  Wire.requestFrom(HMC5883L_ADDR, 6);
-  while (Wire.available())
-  {
-    raw_data[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-    raw_data[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-    raw_data[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-  }
+
+  /*初期化*/
+  raw_data[0] = 0;
+  raw_data[1] = 0;
+  raw_data[2] = 0;
   int data[2] = {};
-  data[0] = (raw_data[0] - MEDIAN_x);
-  data[1] = (raw_data[1] - MEDIAN_y) * SCALE;
-  float deg=atan2(data[1], data[0]) * 180.0 / PI;
-  if (deg<0)
+  float deg = 0;
+  static float pre_deg = 0;
+  static long pre_millis = 0;
+
+  /*前回の読み出しから200ms秒以上経っていたら*/
+  if(millis() - pre_millis > 200)//前回の読み出しから200ms待つ
   {
-    deg=deg + 360;
+    /*アドレス送信*/
+    Wire.beginTransmission(HMC5883L_ADDR);
+    Wire.write(0x00);
+    Wire.endTransmission();
+    Wire.requestFrom(HMC5883L_ADDR, 6);
+
+    /*I2Cから数値を取得する*/
+    while (Wire.available())
+    {
+      raw_data[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+      raw_data[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+      raw_data[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+    }
+
+    /*正しく取得できていなかったら*/
+    if((raw_data[0] == 0) || (raw_data[1] == 0) || (raw_data[2]  == 0))//エラー処理
+    {
+      deg = pre_deg;//過去に取得した角度を返す
+    }
+    /*正常に取得できた場合*/
+    else
+    {
+      /*オイラー角度に変換する*/
+      data[0] = (raw_data[0] - MEDIAN_x);
+      data[1] = (raw_data[1] - MEDIAN_y) * SCALE;
+      deg=atan2(data[1], data[0]) * 180.0 / PI;
+      if (deg<0)
+      {
+        deg += 360;
+      }
+    }
+
+    /*現在の時間を保存する*/
+    pre_millis = millis();
   }
+  /*前回の読み出しから200ms秒以上経っていなかったら*/
+  else
+  {
+    deg = pre_deg;//過去の数値を返す
+  }
+
+  /*現在のデータを保存する*/
+  pre_deg = deg;
   return deg;
 }
 
