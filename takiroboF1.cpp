@@ -13,6 +13,7 @@ reproduced or used in any manner whatsoever.
 ======================================================================*/
 
 #include "takiroboF1.h"
+#include <SoftwareSerial.h>
 #include <avr/io.h>
 #include <Wire.h>
 
@@ -22,74 +23,31 @@ reproduced or used in any manner whatsoever.
 #define MT2CCW          9
 #define MT3CW           11
 #define MT3CCW          6
-#define CW              1 //not pin number
-#define CCW             2 //not pin number
+#define CW              1 
+#define CCW             2 
 #define ECHO            12
 #define TRIG            13
-#define LINE_PIN        1
 #define IR1             8
 #define IR2             17
 #define IR3             16
 #define IR4             14
-#define A1              1  //同じピン↓
-#define D1              15 //同じピン↑
-#define D2              7  //digitalPin
-#define D3              4  //digitalPin
 #define LED             4
-#define FRAMENUM        5
+#define RXPIN           15
+#define TXPIN           7
 #define HMC5883L_ADDR   0x0D
-#define LINE_ADDR       0x08
 
-int *pindata;
-volatile bool startLoop;
+SoftwareSerial mySerial(RXPIN, TXPIN); // RX TX
 
-takiroboF1::takiroboF1(float median_x, float median_y, float scale)
-{
-  MEDIAN_x = median_x;
-  MEDIAN_y = median_y;
-  SCALE = scale;
-  pindata = _pinData;
-  startLoop = false;
-}
-
-takiroboF1::takiroboF1(float median_x, float median_y, float scale,int* _pinstate)
-{
-  MEDIAN_x = median_x;
-  MEDIAN_y = median_y;
-  SCALE = scale;
-  for (int i = 0; i < 3;i++)
-  {
-    _pinData[i] = _pinstate[i];
-  }
-    pindata = _pinData;
-  startLoop = false;
-}
-
-takiroboF1::takiroboF1(int* _pinstate)
-{
-  MEDIAN_x = 0;
-  MEDIAN_y = 0;
-  SCALE = 1;
-  for (int i = 0; i < 3;i++)
-  {
-    _pinData[i] = _pinstate[i];
-  }
-    pindata = _pinData;
-  if(pindata[2]!=0)
-  {
-    startLoop = false;
-  }else{
-    startLoop = true;
-  }
-}
+volatile int readyToStart;
 
 takiroboF1::takiroboF1()
 {
-  MEDIAN_x = 0;
-  MEDIAN_y = 0;
-  SCALE = 1;
-  pindata = _pinData;
-  startLoop = true;
+    MEDIAN_x = 0;
+    MEDIAN_y = 0;
+    SCALE = 1;
+    calib = 0;
+    firstAzim = 0;
+    readyToStart = 0;
 }
 
 void takiroboF1::motor(double spd1, double spd2, double spd3)
@@ -141,6 +99,21 @@ void takiroboF1::motor(double spd1, double spd2, double spd3)
   OCR0A = (unsigned int)(mt_power[5]); //6  MT3CCW 980hz
 }
 
+void takiroboF1::mtDeg(int deg, int spd)
+{
+  double mt[3];
+  double maxValue = 0;
+  mt[0] = sin(((deg - 60) / 180) * M_PI) * spd;
+  mt[1] = sin(((deg - 180) / 180) * M_PI) * spd;
+  mt[2] = sin(((deg - 300) / 180) * M_PI) * spd;
+  maxValue = max(max(mt[0], mt[1]), mt[2]);
+  for (int i = 0; i < 3; i++)
+  {
+    mt[i] = mt[i] / maxValue * spd;
+  }
+  motor(-mt[0], -mt[1], -mt[2]);
+}
+
 double takiroboF1::getUSS()
 {
   digitalWrite(TRIG, LOW);
@@ -162,18 +135,55 @@ double takiroboF1::getUSS()
 
 int takiroboF1::getLine(int num)
 {
-  num = (num-1)%4;
-  return line[num];
-}
-
-void takiroboF1::lineUpdate()
-{
-  Wire.requestFrom(LINE_ADDR, 4);
-  int i = 0;
-  while (Wire.available())
+  if (mySerial.available() > 100)
   {
-    line[i%4] = Wire.read();
-    i++;
+    mySerial.flush();
+  }
+  switch (num)
+  {
+  case 1:
+    // If this program execute, you want to get line sensor of front.
+    mySerial.write("f");
+    while (mySerial.available() == 0)
+      ;
+    while (mySerial.available() > 0)
+    {
+      return mySerial.read();
+    }
+    break;
+  case 2:
+    // If this program execute, you want to get line sensor of right.
+    mySerial.write("r");
+    while (mySerial.available() == 0)
+      ;
+    while (mySerial.available() > 0)
+    {
+      return mySerial.read();
+    }
+    break;
+  case 3:
+    // If this program execute, you want to get line sensor of back.
+    mySerial.write("b");
+    while (mySerial.available() == 0)
+      ;
+    while (mySerial.available() > 0)
+    {
+      return mySerial.read();
+    }
+    break;
+  case 4:
+    // If this program execute, you want to get line sensor of left.
+    mySerial.write("l");
+    while (mySerial.available() == 0)
+      ;
+    while (mySerial.available() > 0)
+    {
+      return mySerial.read();
+    }
+    break;
+  default:
+    return 0;
+    break;
   }
 }
 
@@ -237,304 +247,222 @@ void takiroboF1::irUpdate()
   }
 }
 
-float takiroboF1::getStartingAzimuth()
-{
-  return starting_position_deg;
-}
-
-float takiroboF1::getAzimuth()
+void takiroboF1::azimUpdate()
 {
 
-  /*初期化*/
-  raw_data[0] = 0;
-  raw_data[1] = 0;
-  raw_data[2] = 0;
-  int data[2] = {};
-  float deg = 0;
-  static float pre_deg = 0;
-  static long pre_millis = 0;
+    /*初期化*/
+    raw_data[0] = 0;
+    raw_data[1] = 0;
+    raw_data[2] = 0;
+    int data[2] = {};
+    float deg = 0;
+    static float pre_deg = 0;
+    static long pre_millis = 0;
 
-  /*前回の読み出しから200ms秒以上経っていたら*/
-  if(millis() - pre_millis > 200)//前回の読み出しから200ms待つ
-  {
-    /*アドレス送信*/
-    Wire.beginTransmission(HMC5883L_ADDR);
-    Wire.write(0x00);
-    Wire.endTransmission();
-    Wire.requestFrom(HMC5883L_ADDR, 6);
-
-    /*I2Cから数値を取得する*/
-    while (Wire.available())
+    /*前回の読み出しから200ms秒以上経っていたら*/
+    if(millis() - pre_millis > 200)//前回の読み出しから200ms待つ
     {
-      raw_data[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-      raw_data[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-      raw_data[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
-    }
+      /*アドレス送信*/
+      Wire.beginTransmission(HMC5883L_ADDR);
+      Wire.write(0x00);
+      Wire.endTransmission();
+      Wire.requestFrom(HMC5883L_ADDR, 6);
 
-    /*正しく取得できていなかったら*/
-    if((raw_data[0] == 0) || (raw_data[1] == 0) || (raw_data[2]  == 0))//エラー処理
-    {
-      deg = pre_deg;//過去に取得した角度を返す
+      /*I2Cから数値を取得する*/
+      while (Wire.available())
+      {
+        raw_data[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+        raw_data[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+        raw_data[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+      }
+
+      /*正しく取得できていなかったら*/
+      if((raw_data[0] == 0) || (raw_data[1] == 0) || (raw_data[2]  == 0))//エラー処理
+      {
+        deg = pre_deg;//過去に取得した角度を返す
+      }
+      /*正常に取得できた場合*/
+      else
+      {
+        /*オイラー角度に変換する*/
+        data[0] = (raw_data[0] - MEDIAN_x);
+        data[1] = (raw_data[1] - MEDIAN_y) * SCALE;
+        deg=atan2(data[1], data[0]) * 180.0 / PI;
+        if (deg<0)
+        {
+          deg += 360;
+        }
+      }
+
+      /*現在の時間を保存する*/
+      pre_millis = millis();
     }
-    /*正常に取得できた場合*/
+    /*前回の読み出しから200ms秒以上経っていなかったら*/
     else
     {
-      /*オイラー角度に変換する*/
-      data[0] = (raw_data[0] - MEDIAN_x);
-      data[1] = (raw_data[1] - MEDIAN_y) * SCALE;
-      deg=atan2(data[1], data[0]) * 180.0 / PI;
-      if (deg<0)
-      {
-        deg += 360;
-      }
+      deg = pre_deg;//過去の数値を返す
     }
 
-    /*現在の時間を保存する*/
-    pre_millis = millis();
-  }
-  /*前回の読み出しから200ms秒以上経っていなかったら*/
-  else
-  {
-    deg = pre_deg;//過去の数値を返す
-  }
+    /*現在のデータを保存する*/
+    pre_deg = deg;
+    degree = deg;
+    return degree;
+}
 
-  /*現在のデータを保存する*/
-  pre_deg = deg;
-  return deg;
+double takiroboF1::getAzimuth()
+{
+    azimUpdate();
+    double deg = 0;
+    deg = degree - firstAzim;
+    if(deg<0)
+    {
+        deg = deg + 360;
+    }
 }
 
 void takiroboF1::calib_compass()
 {
-  //Serial.println("Robot start calibrating 5 seconds later");
-  Serial.println("キャリブレーションは5秒後に開始されます。");
-  int start = millis();
-  int finish;
-  int now_calib = 0;
-  float median[2] = {};
-  float calib_data[4] = {};
-  float SCALE = 0;
-  while(1)
-  {
-    finish = millis();
-    if((finish-start)>=5000)
+    //Serial.println("Robot start calibrating 5 seconds later");
+    Serial.println("キャリブレーションは5秒後に開始されます。");
+    int start = millis();
+    int finish;
+    int now_calib = 0;
+    float median[2] = {};
+    float calib_data[4] = {};
+    float SCALE = 0;
+    while(1)
     {
-      break;
+      finish = millis();
+      if((finish-start)>=5000)
+      {
+        break;
+      }
     }
-  }
-  start = millis();
-  finish = 0;
-  while (1)
-  {
-    getAzimuth();
-    delay(10);
-    //Serial.println("Robot is calibrating now");
-    Serial.println("現在、キャリブレーション中です。");
-    if (raw_data[0] < calib_data[0])
+    start = millis();
+    finish = 0;
+    while (1)
     {
-      calib_data[0] = raw_data[0];
-      now_calib = 1;
-      //Xmin
+      getAzimuth();
+      delay(10);
+      //Serial.println("Robot is calibrating now");
+      Serial.println("現在、キャリブレーション中です。");
+      if (raw_data[0] < calib_data[0])
+      {
+        calib_data[0] = raw_data[0];
+        now_calib = 1;
+        //Xmin
+      }
+      if (raw_data[0] > calib_data[1])
+      {
+        calib_data[1] = raw_data[0];
+        now_calib = 1;
+        //Xmax
+      }
+      if (raw_data[1] < calib_data[2])
+      {
+        calib_data[2] = raw_data[1];
+        now_calib = 1;
+        //Ymin
+      }
+      if (raw_data[1] > calib_data[3])
+      {
+        calib_data[3] = raw_data[1];
+        now_calib = 1;
+        //Ymax
+      }
+      finish = millis();
+      if ((finish - start) > 8000 && now_calib == 0)
+      {
+        break;
+      }
+      now_calib = 0;
     }
-    if (raw_data[0] > calib_data[1])
-    {
-      calib_data[1] = raw_data[0];
-      now_calib = 1;
-      //Xmax
-    }
-    if (raw_data[1] < calib_data[2])
-    {
-      calib_data[2] = raw_data[1];
-      now_calib = 1;
-      //Ymin
-    }
-    if (raw_data[1] > calib_data[3])
-    {
-      calib_data[3] = raw_data[1];
-      now_calib = 1;
-      //Ymax
-    }
-    finish = millis();
-    if ((finish - start) > 8000 && now_calib == 0)
-    {
-      break;
-    }
-    now_calib = 0;
-  }
-  MEDIAN_x = (calib_data[0] + calib_data[1]) / 2;
-  MEDIAN_y = (calib_data[2] + calib_data[3]) / 2;
-  SCALE = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
+    MEDIAN_x = (calib_data[0] + calib_data[1]) / 2;
+    MEDIAN_y = (calib_data[2] + calib_data[3]) / 2;
+    SCALE = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
 
-  //Serial.println("calibration complete");
-  Serial.println("キャリブレーションが終了しました。");
-  Serial.print("(");
-  Serial.print(MEDIAN_x);
-  Serial.print(",");
-  Serial.print(MEDIAN_y);
-  Serial.print(",");
-  Serial.print(SCALE);
-  Serial.println(")");
-}
-
-int takiroboF1::getAnalogPin()
-{
-  if(pindata[0]==3)
-  {
-    return analogRead(A1);
-  }else{
-    return 0;
-  }
-}
-
-int takiroboF1::getDigitalPin(int pin)
-{
-  switch(pin)
-  {
-    case 1:
-      if(pindata[0]==1)
-      {
-        pinMode(D1, INPUT);
-        return digitalRead(D1);      
-      }else{
-        return 0;
-      }
-      break;
-    case 2:
-      if(pindata[1]==1)
-      {
-        pinMode(D2, INPUT);
-        return digitalRead(D2);        
-      }else{
-        return 0;
-      }
-      break;
-    case 3:
-      if (pindata[2]==1)
-      {
-        pinMode(D3, INPUT);
-        return digitalRead(D3);        
-      }else{
-        return 0;
-      }
-      break;
-    default:
-      return 0;
-      break;
-  }
-}
-
-void takiroboF1::setDigitalPin(int pin,bool value)
-{
-  switch(pin)
-  {
-    case 1:
-      if(pindata[0]==2)
-      {
-        pinMode(D1,OUTPUT);
-        digitalWrite(D1,value);        
-      }
-      break;
-    case 2:
-      if(pindata[1]==2)
-      {
-        pinMode(D2,OUTPUT);
-        digitalWrite(D2,value);        
-      }
-      break;
-    case 3:
-      if(pindata[2]==2)
-      {
-        pinMode(D3,OUTPUT);
-        digitalWrite(D3,value);        
-      }
-      break;
-    default:
-      break;
-  }
+    //Serial.println("calibration complete");
+    /*
+    Serial.println("キャリブレーションが終了しました。");
+    Serial.print("(");
+    Serial.print(MEDIAN_x);
+    Serial.print(",");
+    Serial.print(MEDIAN_y);
+    Serial.print(",");
+    Serial.print(SCALE);
+    Serial.println(")");
+    */
 }
 
 static void takiroboF1::interrupt()
 {
-  pinMode(2, INPUT);
-  startLoop = 0;
-  digitalWrite(MT1CW, LOW);
-  digitalWrite(MT1CCW, LOW);
-  digitalWrite(MT2CW, LOW);
-  digitalWrite(MT2CCW, LOW);
-  digitalWrite(MT3CW, LOW);
-  digitalWrite(MT3CCW, LOW); //つまりmotor(0, 0, 0)と同じ
-  while(1)
-  {
-
-    if(pindata[2]==0)
+    pinMode(2, INPUT);
+    digitalWrite(MT1CW, LOW);
+    digitalWrite(MT1CCW, LOW);
+    digitalWrite(MT2CW, LOW);
+    digitalWrite(MT2CCW, LOW);
+    digitalWrite(MT3CW, LOW);
+    digitalWrite(MT3CCW, LOW);
+    while (1)
     {
-      digitalWrite(LED, LOW); //割り込み中はLED2が消灯します。    
+        digitalWrite(LED, LOW);
+        if (digitalRead(2) == HIGH)
+        {
+          break;
+        }
     }
-    if(digitalRead(2)==HIGH)
-    {
-      break;
-    }
-  }
-  if(pindata[2]==0)
-  {
-    digitalWrite(LED,HIGH);
-  }
+    attachInterrupt(0, interrupt,LOW);
+    digitalWrite(LED, HIGH);
+    readyToStart = 1;
 }
 
 void takiroboF1::init()
 {
 
-  Serial.begin(9600);
+    pinMode(LED, OUTPUT);
+    pinMode(IR1, INPUT);
+    pinMode(IR2, INPUT);
+    pinMode(IR3, INPUT);
+    pinMode(IR4, INPUT);
+    pinMode(MT1CW, OUTPUT);
+    pinMode(MT1CCW, OUTPUT);
+    pinMode(MT2CW, OUTPUT);
+    pinMode(MT2CCW, OUTPUT);
+    pinMode(MT3CW, OUTPUT);
+    pinMode(MT3CCW, OUTPUT);
 
-  pinMode(LED, OUTPUT);
-  pinMode(IR1, INPUT);
-  pinMode(IR2, INPUT);
-  pinMode(IR3, INPUT);
-  pinMode(IR4, INPUT);
-  pinMode(MT1CW, OUTPUT);
-  pinMode(MT1CCW, OUTPUT);
-  pinMode(MT2CW, OUTPUT);
-  pinMode(MT2CCW, OUTPUT);
-  pinMode(MT3CW, OUTPUT);
-  pinMode(MT3CCW, OUTPUT);
+    digitalWrite(MT1CW, LOW);
+    digitalWrite(MT1CCW, LOW);
+    digitalWrite(MT2CW, LOW);
+    digitalWrite(MT2CCW, LOW);
+    digitalWrite(MT3CW, LOW);
+    digitalWrite(MT3CCW, LOW);
 
-  attachInterrupt(0, interrupt, LOW);
+    Serial.begin(9600);
+    mySerial.begin(9600);
+    Wire.begin();
+    Wire.beginTransmission(HMC5883L_ADDR);
+    Wire.write(0x0B);
+    Wire.write(0x01);
+    Wire.endTransmission();
+    Wire.beginTransmission(HMC5883L_ADDR);
+    Wire.write(0x09);
+    Wire.write(0x1D);
+    Wire.endTransmission();
 
-  digitalWrite(MT1CW, LOW);
-  digitalWrite(MT1CCW, LOW);
-  digitalWrite(MT2CW, LOW);
-  digitalWrite(MT2CCW, LOW);
-  digitalWrite(MT3CW, LOW);
-  digitalWrite(MT3CCW, LOW);
+    attachInterrupt(0, interrupt,LOW);
 
-  Wire.begin();
-  Wire.beginTransmission(HMC5883L_ADDR);
-  Wire.write(0x0B);
-  Wire.write(0x01);
-  Wire.endTransmission();
-  Wire.beginTransmission(HMC5883L_ADDR);
-  Wire.write(0x09);
-  Wire.write(0x1D);
-  Wire.endTransmission();
-
-  if (startLoop)
-  {
-    calib_compass();
-    for (int i = 0; i <= 10; i++)
+    while(readyToStart == 0)
     {
-      digitalWrite(LED, HIGH);
-      delay(100);
-      digitalWrite(LED, LOW);
-      delay(100);      
+        if(calib == 0)
+        {
+            calib_compass();
+            calib = 1;
+        }
+        digitalWrite(LED, HIGH);
+        delay(500);
+        digitalWrite(LED, LOW);
+        delay(500);
     }
-    digitalWrite(LED, HIGH);
-  }
-
-  while(startLoop)
-  {
-  }
-
-  attachInterrupt(0, interrupt, FALLING);
-
-  starting_position_deg = getAzimuth();
-
+    firstAzim = getAzimuth();
 }

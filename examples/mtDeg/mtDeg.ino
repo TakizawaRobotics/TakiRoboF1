@@ -11,4 +11,9 @@ void setup()
 void loop()
 {
   //プログラムはここをループし続けます。
+  int deg = 90; //ロボットに進ませたい角度を代入する。
+  int spd = 255; //スピードを入れる。
+  robot.mtDeg(deg, spd);
+  delay(2000); //2秒間、deg方向に進み続ける。
+  robot.motor(0, 0, 0);
 }

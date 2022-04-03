@@ -18,36 +18,30 @@ reproduced or used in any manner whatsoever.
 class takiroboF1
 {
 public:
-    takiroboF1(float median_x, float median_y, float scale);
-    takiroboF1(float median_x, float median_y, float scale, int *pinData);
-    takiroboF1(int *pinData);
     takiroboF1();
     void init();
+    void motor(double spd1, double spd2, double spd3);
+    void mtDeg(int deg, int spd);
     void irUpdate();
-    void lineUpdate();
     int getIr(int num);
     int getLine(int num);
     double getUSS();
-    void motor(double spd1, double spd2, double spd3);
-    float getStartingAzimuth();
-    float getAzimuth();
-    void calib_compass();
-    int getAnalogPin();
-    int getDigitalPin(int pin);
-    void setDigitalPin(int pin, bool value);
+    double getAzimuth();
     static void interrupt();
 
 private:
-    float starting_position_deg = 0;
-    int _ir1 = 0;
-    int _ir2 = 0;
-    int _ir3 = 0;
-    int _ir4 = 0;
-    float MEDIAN_x;
-    float MEDIAN_y;
-    float SCALE;
+    void azimUpdate();
+    void calib_compass();
+    volatile int _ir1;
+    volatile int _ir2;
+    volatile int _ir3;
+    volatile int _ir4;
+    volatile int calib;
+    double firstAzim;
+    double degree;
+    double MEDIAN_x;
+    double MEDIAN_y;
+    double SCALE;
     int raw_data[3] = {};
-    int line[4];
-    int _pinData[3] = {};
 };
 #endif
