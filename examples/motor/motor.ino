@@ -1,6 +1,3 @@
-/*
-   モーターを動かして、機体を時計回りに回転させるだけのプログラムです。
-*/
 #include "takiroboF1.h"
 takiroboF1 robot;
 void setup() {
