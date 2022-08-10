@@ -1,16 +1,22 @@
 #include <takiroboF1.h>
 
-takiroboF1 robot; //()の中は任意で書き変えてください。詳細は取扱説明書参照。
+//HMC5883L(地磁気), MPU6050(ジャイロ), NONE(無し) から選択する
+//何も指定しない場合, コンパスは使用されない
+takiroboF1 robot(MPU6050);
 
 void setup()
 {
-  robot.init();
   //ここは電源を入れてから一度しか実行されません。
+  Serial.begin(9600);
+  robot.init();
 }
 
 void loop()
 {
   //プログラムはここをループし続けます。
-  Serial.print("degree");
-  Serial.println(robot.getAzimuth());
+  if(robot.getBtn() == HIGH)//スタートスイッチが押された時
+  {
+    Serial.print("方位角：");
+    Serial.println(robot.getAzimuth());
+  }
 }

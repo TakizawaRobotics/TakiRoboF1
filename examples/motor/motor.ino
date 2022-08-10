@@ -1,22 +1,20 @@
 #include "takiroboF1.h"
+
+//HMC5883L(地磁気), MPU6050(ジャイロ), NONE(無し) から選択する
+//何も指定しない場合, コンパスは使用されない
 takiroboF1 robot;
+
 void setup() {
-  // put your setup code here, to run once:
+  Serial.begin(9600);
   robot.init();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  for (int i = 0; i < 256; i++) {
-    robot.motor(i, i, i);
-    delay(40);
+  if(robot.getBtn() == HIGH)//スタートスイッチが押された時
+  {
+    robot.motor(255,255);
   }
-  for (int i = 255; i >= -255; i--) {
-    robot.motor(i, i, i);
-    delay(40);
-  }
-  for (int i = -255; i <= 0; i++) {
-    robot.motor(i, i, i);
-    delay(40);
+  else{
+    robot.motor(-255,-255);
   }
 }

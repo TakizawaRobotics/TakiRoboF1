@@ -1,9 +1,12 @@
 #include <takiroboF1.h>
 
-takiroboF1 robot; //()の中は任意で書き変えてください。詳細は取扱説明書参照。
+//HMC5883L(地磁気), MPU6050(ジャイロ), NONE(無し) から選択する
+//何も指定しない場合, コンパスは使用されない
+takiroboF1 robot;
 
 void setup()
 {
+  Serial.begin(9600);
   robot.init();
   //ここは電源を入れてから一度しか実行されません。
 }
@@ -11,12 +14,15 @@ void setup()
 void loop()
 {
   //プログラムはここをループし続けます。
-  Serial.print("front:");
-  Serial.println(robot.getLine(1));
-  Serial.print("right:");
-  Serial.println(robot.getLine(2));
-  Serial.print("back:");
-  Serial.println(robot.getLine(3));
-  Serial.print("left:");
-  Serial.println(robot.getLine(4));
+  if(robot.getBtn() == HIGH)//スタートスイッチが押された時
+  {
+    Serial.print("front:");
+    Serial.println(robot.getLine(FRONT));
+    Serial.print("right:");
+    Serial.println(robot.getLine(RIGHT));
+    Serial.print("back:");
+    Serial.println(robot.getLine(BACK));
+    Serial.print("left:");
+    Serial.println(robot.getLine(LEFT));
+  }
 }
