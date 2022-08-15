@@ -506,9 +506,9 @@ void takiroboF1::azimUpdate(void)
     double dt = current_time - last_time;
 
     //角速度の積分
-    Deg_mpu += omega * (dt / 1000000.0);  //degZ[deg] = omega[deg/s] * dt[us] / 1000000[us/s]
+    Deg_mpu += omega * (dt / (1000000.0 * 3.0));  //degZ[deg] = omega[deg/s] * dt[us] / 1000000[us/s]
     last_time = current_time;
-    Degree = Deg_mpu;
+    Degree = -1.0*Deg_mpu;//左手座標系にする
     
     az_check_flag = false;
 
@@ -534,16 +534,19 @@ int takiroboF1::getAzimuth(void)
   if(Mode == HMC5883L)
   {
     ret = Degree - Latest_azim;
-    if(ret<0)
-    {
-      ret = ret + 360;
-    }
   }
   else if(Mode == MPU6050)
   {
     ret = Degree;
   }
-
+  while(ret > 179)
+  {
+    ret -= 360;
+  }
+  while(ret < -179)
+  {
+    ret += 360;
+  }
   return ret;
 }
 
