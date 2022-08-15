@@ -501,12 +501,12 @@ void takiroboF1::azimUpdate(void)
 
     //yaw計算
     static int last_time = micros();
-    double omega = double(gzRaw)/16.4; //omega[deg/s] = gz[LSB] / 16.4[LSB/deg/s]
+    double omega = double(gzRaw)/131.0; //omega[deg/s] = gz[LSB] / 16.4[LSB/deg/s]
     int current_time = micros();  //time[us]
     double dt = current_time - last_time;
 
     //角速度の積分
-    Deg_mpu += omega * (dt / (1000000.0 * 3.0));  //degZ[deg] = omega[deg/s] * dt[us] / 1000000[us/s]
+    Deg_mpu += omega * (dt / 1000000.0);  //degZ[deg] = omega[deg/s] * dt[us] / 1000000[us/s]
     last_time = current_time;
     Degree = -1.0*Deg_mpu;//左手座標系にする
     
