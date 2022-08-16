@@ -99,6 +99,7 @@ void takiroboF1::timerISR(void){
 
   count++;
 
+  /*タイマー割り込みの再開*/
   Timer1.attachInterrupt(timerISR); 
 }
 
@@ -113,22 +114,22 @@ SoftwareSerial lineSerial(RXPIN, TXPIN); // RX TX
 takiroboF1::takiroboF1(void)
 {
   Mode = NONE;
-  Ready_to_start = false;
+  Ready_to_start = true;
   Median_x = 0;
   Median_y = 0;
   Scale = 1;
-  Calib = false;
+  Calib = true;
   Latest_azim = 0;
 }
 
 takiroboF1::takiroboF1(COMPASS mode)
 {
   Mode = mode;
-  Ready_to_start = true;
+  Ready_to_start = false;
   Median_x = 0;
   Median_y = 0;
   Scale = 1;
-  Calib = true;
+  Calib = false;
   Latest_azim = 0;
 }
 
@@ -313,48 +314,56 @@ int takiroboF1::getLine(DIRECTION dir)
   int ret = 0;
   long last_time = 0;
 
-  /*シリアルバッファの削除*/
-  lineSerial.flush();
+  /*値の取得を失敗した場合は再度、取得を行う*/
+  while(1){
+    /*シリアルバッファの削除*/
+    lineSerial.flush();
 
-  switch (dir)
-  {
-  case FRONT:
-    // If this program execute, you want to get line sensor of front.
-    lineSerial.write("f");
-    break;
-  case RIGHT:
-    // If this program execute, you want to get line sensor of right.
-    lineSerial.write("r");
-    break;
-  case BACK:
-    // If this program execute, you want to get line sensor of back.
-    lineSerial.write("b");
-    break;
-  case LEFT:
-    // If this program execute, you want to get line sensor of left.
-    lineSerial.write("l");
-    break;
-  default:
-    ret = 0;
-    break;
-  }
-
-  /*エラー処理(主に通信ができなかった場合)*/
-  last_time = millis();
-  while (lineSerial.available() == 0){
-    if((millis() - last_time) > 20)
+    switch (dir)
     {
-      ret = -1;
+    case FRONT:
+      // If this program execute, you want to get line sensor of front.
+      lineSerial.write("f");
+      break;
+    case RIGHT:
+      // If this program execute, you want to get line sensor of right.
+      lineSerial.write("r");
+      break;
+    case BACK:
+      // If this program execute, you want to get line sensor of back.
+      lineSerial.write("b");
+      break;
+    case LEFT:
+      // If this program execute, you want to get line sensor of left.
+      lineSerial.write("l");
+      break;
+    default:
+      ret = 0;
+      break;
+    }
+
+    /*エラー処理(主に通信ができなかった場合)*/
+    
+    last_time = millis();
+    while (lineSerial.available() == 0){
+      if((millis() - last_time) > 100)
+      {
+        ret = -1;
+        break;
+      }
+    }
+
+    /*ラインセンサ取得*/
+    while (lineSerial.available() > 0)
+    {
+      ret = (int)lineSerial.read();
+    }
+
+    /*値の取得に成功したら終了*/
+    if(ret != -1){
       break;
     }
   }
-
-  /*ラインセンサ取得*/
-  while (lineSerial.available() > 0)
-  {
-    ret = (int)lineSerial.read();
-  }
-
   return ret;
 }
 
@@ -558,6 +567,7 @@ void takiroboF1::calibCompass(void)
     float Median[2] = {};
     float calib_data[4] = {};
     float Scale = 0;
+    Serial.println("5秒後にキャリブレーションが開始されます。");
     while(1)
     {
       finish = millis();
@@ -570,7 +580,7 @@ void takiroboF1::calibCompass(void)
     finish = 0;
     while (1)
     {
-      getAzimuth();
+      azimUpdate();
       delay(10);
       if (Raw_data[0] < calib_data[0])
       {
@@ -597,8 +607,12 @@ void takiroboF1::calibCompass(void)
         //Ymax
       }
       finish = millis();
-      if ((finish - start) > 8000 && now_calib == 0)
+      char buff[50];
+      if ((finish - start) > 6000 && now_calib == 0)
       {
+        Ready_to_start = true;
+        Calib = true;
+        Serial.println("キャリブレーション終了。");
         break;
       }
       now_calib = 0;
@@ -706,7 +720,7 @@ void takiroboF1::init(void)
   ICR1 = 255;
 
   /*ラインセンサ*/
-  lineSerial.begin(19200);
+  lineSerial.begin(9600);
 
   switch(Mode)
   {
@@ -731,7 +745,6 @@ void takiroboF1::init(void)
         if(Calib == false)
         {
           calibCompass();
-          Calib = true;
         }
         //キャリブレーション完了合図
         digitalWrite(LED, LOW);
@@ -743,7 +756,6 @@ void takiroboF1::init(void)
         digitalWrite(LED, HIGH);
         delay(250);
         digitalWrite(LED, LOW);
-        Ready_to_start == true;
       }
       break;
 
