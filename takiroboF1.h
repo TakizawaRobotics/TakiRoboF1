@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef _takiroboF1_H_
 #define _takiroboF1_H_
-#include "arduino.h"
+#include <Arduino.h>
 
 /*センサー定義*/
 typedef enum //ラインセンサとボールセンサの方向指定で使用
@@ -58,6 +58,7 @@ public:
     bool getBtn(void);
     int getAzimuth(void);
     void sensorMonitor(char *str);
+    void calibCompass();
 
 private: 
     static void irUpdate(void);
@@ -65,6 +66,5 @@ private:
     static void btnUpdate(void);
     static void azimUpdate(void);
     static void timerISR(void);
-    void calibCompass();
 };
 #endif

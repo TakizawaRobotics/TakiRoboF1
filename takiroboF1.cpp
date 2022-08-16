@@ -4,7 +4,7 @@ File Name       : takiroboF1.cpp
 Encoding        : utf-8
 Creation Date   : c++
 author          : Takumi Yoneda, Hayato Tajiri
-update date     : 2022/8/9 
+update date     : 2022/8/16 
  
 Copyright © <2022> TakizawaRoboticsLLC. All rights reserved.
 
@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <avr/io.h>
 #include <Wire.h>
 #include <TimerOne.h>
+#include <EEPROM.h>
 
 #define MT1CW           3
 #define MT1CCW          5
@@ -564,12 +565,14 @@ int takiroboF1::getAzimuth(void)
 ////////////////////////////////////////////////////
 void takiroboF1::calibCompass(void)
 {
-    int start = millis();
-    int finish;
-    int now_calib = 0;
-    float Median[2] = {};
-    float calib_data[4] = {};
-    float Scale = 0;
+  int start = millis();
+  int finish;
+  int now_calib = 0;
+  //float Median[2] = {};
+  float calib_data[4] = {};
+  //float Scale = 0;
+  if(Calib == false)
+  {
     Serial.println("5秒後にキャリブレーションが開始されます。");
     while(1)
     {
@@ -583,7 +586,6 @@ void takiroboF1::calibCompass(void)
     finish = 0;
     while (1)
     {
-      azimUpdate();
       delay(10);
       if (Raw_data[0] < calib_data[0])
       {
@@ -610,19 +612,34 @@ void takiroboF1::calibCompass(void)
         //Ymax
       }
       finish = millis();
-      char buff[50];
+      Serial.println(finish - start);
       if ((finish - start) > 6000 && now_calib == 0)
       {
-        Ready_to_start = true;
         Calib = true;
         Serial.println("キャリブレーション終了。");
+        Median_x = (calib_data[0] + calib_data[1]) / 2;
+        Median_y = (calib_data[2] + calib_data[3]) / 2;
+        Scale = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
+        while(1)
+        {
+          Serial.print("方位角：");
+          Serial.println(getAzimuth());
+          if(getBtn() == HIGH)
+          {
+            unsigned int address = 0x00;
+            EEPROM.put(address,Median_x);
+            address += sizeof(Median_x);
+            EEPROM.put(address,Median_y);
+            address += sizeof(Median_y);
+            EEPROM.put(address,Scale);
+            break;
+          }
+        }
         break;
       }
       now_calib = 0;
     }
-    Median_x = (calib_data[0] + calib_data[1]) / 2;
-    Median_y = (calib_data[2] + calib_data[3]) / 2;
-    Scale = ((calib_data[1] - calib_data[0]) / (calib_data[3] - calib_data[2]));
+  }
 }
 
 //////////////////////
@@ -659,8 +676,7 @@ bool takiroboF1::getBtn(void)
 {
   return Ready_to_start;
 }
-
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////
 /*センサモニタ                                              　　　　　　　*/
 /*メモ：文字配列を参照渡で返すのでそのデータをSerial.print()に入れると表示できる*/
 ///////////////////////////////////////////////////////////////////////
@@ -745,9 +761,21 @@ void takiroboF1::init(void)
       Raw_data[2] = 0;
       while(Ready_to_start == false)
       {
+        unsigned int address = 0x00;
         if(Calib == false)
         {
-          calibCompass();
+          EEPROM.get(address,Median_x);
+          address += sizeof(Median_x);
+          EEPROM.get(address,Median_y);
+          address += sizeof(Median_y);
+          EEPROM.get(address,Scale);
+          Ready_to_start = true;
+          Serial.print("X:");
+          Serial.println(Median_x);
+          Serial.print("Y:");
+          Serial.println(Median_y);
+          Serial.print("S:");
+          Serial.println(Scale);
         }
         //キャリブレーション完了合図
         digitalWrite(LED, LOW);
