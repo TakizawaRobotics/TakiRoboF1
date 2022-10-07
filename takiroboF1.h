@@ -38,7 +38,7 @@ typedef enum //ラインセンサとボールセンサの方向指定で使用
 typedef enum //方位角で使用するセンサ
 {
 	HMC5883L,
-	MPU6050,
+	MPU,
     NONE,
 } COMPASS;
 

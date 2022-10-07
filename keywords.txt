@@ -3,8 +3,8 @@
 #######################################
 
 takiroboF1  KEYWORD1
-MPU6050	KEYWORD2
-HMC5883L	KEYWORD2
+MPU     	KEYWORD1
+HMC5883L	KEYWORD1
 
 #######################################
 #Methods and Functions (KEYWORD2)

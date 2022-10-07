@@ -26,8 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <SoftwareSerial.h>
 #include <avr/io.h>
 #include <Wire.h>
+#include "I2Cdev.h"
 #include <TimerOne.h>
 #include <EEPROM.h>
+#include "MPU6050_6Axis_MotionApps20.h"
 
 #define MT1CW           3
 #define MT1CCW          5
@@ -49,6 +51,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define BTN             2
 #define HMC5883L_ADDR   0x0D
 #define MPU6050_ADDR    0x68
+#define OUTPUT_READABLE_YAWPITCHROLL
+
 
 ///////////////////////////////
 /*グローバル変数*/
@@ -70,6 +74,32 @@ volatile static int Uss_val;
 volatile bool Calib;
 volatile bool az_check_flag = false;
 
+///////////////
+/*コンストラクタ*/
+////////////////
+MPU6050 mpu;
+
+// MPU control/status vars
+bool dmpReady = false;  // set true if DMP init was successful
+uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
+uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
+uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
+uint16_t fifoCount;     // count of all bytes currently in FIFO
+uint8_t fifoBuffer[64]; // FIFO storage buffer
+
+// orientation/motion vars
+Quaternion q;           // [w, x, y, z]         quaternion container
+VectorInt16 aa;         // [x, y, z]            accel sensor measurements
+VectorInt16 aaReal;     // [x, y, z]            gravity-free accel sensor measurements
+VectorInt16 aaWorld;    // [x, y, z]            world-frame accel sensor measurements
+VectorFloat gravity;    // [x, y, z]            gravity vector
+float euler[3];         // [psi, theta, phi]    Euler angle container
+float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+
+// packet structure for InvenSense teapot demo
+uint8_t teapotPacket[14] = { '$', 0x02, 0,0, 0,0, 0,0, 0,0, 0x00, 0x00, '\r', '\n' };
+
+
 /////////////////////////////////////////////////
 /*タイマー割り込み関数 2040マイクロ秒周期で呼び出される*/
 /////////////////////////////////////////////////
@@ -82,13 +112,13 @@ void takiroboF1::timerISR(void){
 
   /*一定周期ごとに関数を実行*/
   /*タイミングが重なった場合上から優先で実行される*/
-  if((count % 5) == 0){//約100Hz
+  if((count % 3) == 0){//約100Hz
     takiroboF1::azimUpdate();
   }
   else if((count % 23) == 0){//約20Hz
     takiroboF1::irUpdate();
   }
-  else if((count % 57) == 0){//約10Hz
+  else if((count % 59) == 0){//約10Hz
     takiroboF1::btnUpdate();
   }
   else if((count % 101) == 0){//約5Hz
@@ -484,46 +514,23 @@ void takiroboF1::azimUpdate(void)
     Degree = deg;
   }
   /*ジャイロ*/
-  else if(Mode == MPU6050)
+  else if(Mode == MPU)
   {
-    static double timer = 0;
     int16_t axRaw, ayRaw, azRaw, gxRaw, gyRaw, gzRaw, Temperature;
 
     //I2C割り込みの許可
     interrupts();
 
-    Wire.beginTransmission(MPU6050_ADDR);
-    Wire.write(0x3B);
-    Wire.endTransmission();
-    Wire.requestFrom(MPU6050_ADDR, 14);
-
-    while (Wire.available() < 14);
-    axRaw = Wire.read() << 8 | Wire.read();
-    ayRaw = Wire.read() << 8 | Wire.read();
-    azRaw = Wire.read() << 8 | Wire.read();
-    Temperature = Wire.read() << 8 | Wire.read();
-    gxRaw = Wire.read() << 8 | Wire.read();
-    gyRaw = Wire.read() << 8 | Wire.read();
-    gzRaw = Wire.read() << 8 | Wire.read();
+    if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { 
+      mpu.dmpGetQuaternion(&q, fifoBuffer);
+      mpu.dmpGetGravity(&gravity, &q);
+      mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+      Degree = ypr[0] * 180/M_PI;
+    }
 
     //I2C割り込み禁止
-    noInterrupts();
-
-    //yaw計算
-    static int last_time = micros();
-    double omega = double(gzRaw)/131.0; //omega[deg/s] = gz[LSB] / 16.4[LSB/deg/s]
-    int current_time = micros();  //time[us]
-    double dt = current_time - last_time;
-
-    //角速度の積分
-    Deg_mpu += omega * (dt / 1000000.0);  //degZ[deg] = omega[deg/s] * dt[us] / 1000000[us/s]
-    last_time = current_time;
-    Degree = -1.0*Deg_mpu;//左手座標系にする
-    
+    noInterrupts();  
     az_check_flag = false;
-
-    /*Serial.println(dt/1000000.0);
-    Serial.println(omega);*/
   }
   else
   {
@@ -541,14 +548,7 @@ void takiroboF1::azimUpdate(void)
 int takiroboF1::getAzimuth(void)
 {
   int ret = 0;
-  if(Mode == HMC5883L)
-  {
-    ret = Degree - Latest_azim;
-  }
-  else if(Mode == MPU6050)
-  {
-    ret = Degree;
-  }
+  ret = Degree - Latest_azim;
   while(ret > 179)
   {
     ret -= 360;
@@ -656,8 +656,7 @@ void takiroboF1::btnUpdate(void)
 
     if(last_state == false)
     {
-      //Latest_azim = getAzimuth();
-      Deg_mpu = 0;
+      Latest_azim = Degree;
       last_state = true;
     }
   }
@@ -791,33 +790,48 @@ void takiroboF1::init(void)
       break;
 
     /*MPU6050を利用する場合*/
-    case MPU6050:
-      Wire.begin();
-      Wire.beginTransmission(MPU6050_ADDR);
-      Wire.write(0x6B);
-      Wire.write(0x00);
-      Wire.endTransmission();
+    case MPU:
+      
+      // join I2C bus (I2Cdev library doesn't do this automatically)
+      #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+        Wire.begin();
+        Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
+      #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+        Fastwire::setup(400, true);
+      #endif
 
-      //Gyro初期設定
-      Wire.beginTransmission(MPU6050_ADDR);
-      Wire.write(0x1B);
-      Wire.write(0x08);
-      Wire.endTransmission();
+      // initialize device
+      mpu.initialize();
 
-      //加速度センサ初期設定
-      Wire.beginTransmission(MPU6050_ADDR);
-      Wire.write(0x1C);
-      Wire.write(0x10);
-      Wire.endTransmission();
+      // verify connection
+      mpu.testConnection();
 
-      //LPF設定
-      Wire.beginTransmission(MPU6050_ADDR);
-      Wire.write(0x1A);
-      Wire.write(0x03);
-      Wire.endTransmission();
+      // load and configure the DMP
+      devStatus = mpu.dmpInitialize();
 
-      Deg_mpu = 0;
+      // supply your own gyro offsets here, scaled for min sensitivity
+      mpu.setXGyroOffset(220);
+      mpu.setYGyroOffset(76);
+      mpu.setZGyroOffset(-85);
+      mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+
+      // make sure it worked (returns 0 if so)
+      if (devStatus == 0) {
+        // Calibration Time: generate offsets and calibrate our MPU6050
+        mpu.CalibrateAccel(6);
+        mpu.CalibrateGyro(6);
+        mpu.PrintActiveOffsets();
+        mpu.setDMPEnabled(true);
+        mpuIntStatus = mpu.getIntStatus();
+
+        // set our DMP Ready flag so the main loop() function knows it's okay to use it
+        dmpReady = true;
+
+        // get expected DMP packet size for later comparison
+        packetSize = mpu.dmpGetFIFOPacketSize();
+      }
       break;
+      
     
     /*何もしない場合*/
     default:
