@@ -6,7 +6,7 @@ takiroboF1 robot;
 
 int deg = 90; //ロボットに進ませたい角度を代入する。
 int spd = 255; //スピードを入れる。
-int yaw = 30; //回転成分を入れる。
+int yaw = 0; //回転成分を入れる。
 void setup()
 {
   //ここは電源を入れてから一度しか実行されません。
@@ -19,5 +19,8 @@ void loop()
   //プログラムはここをループし続けます。
   if(robot.getBtn() == HIGH){//スタートスイッチが押された時
     robot.omniControl(deg, spd, yaw);
+  }
+  else{
+    robot.omniControl(0, 0, 0);//停止
   }
 }

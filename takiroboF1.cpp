@@ -4,7 +4,7 @@ File Name       : takiroboF1.cpp
 Encoding        : utf-8
 Creation Date   : c++
 author          : Takumi Yoneda, Hayato Tajiri
-update date     : 2022/8/16 
+update date     : 2022/10/7 
  
 Copyright © <2022> TakizawaRoboticsLLC. All rights reserved.
 
