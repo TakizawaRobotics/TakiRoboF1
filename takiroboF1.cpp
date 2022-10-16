@@ -261,49 +261,26 @@ void takiroboF1::motor(int spd1, int spd2, int spd3)
 /*入力値(進行方向の角度、スピード、回転)*/
 /*メモ：左手座標系で動作する　　　　　　*/
 ///////////////////////////////////
-void takiroboF1::omniControl(int deg, int spd, int yaw)
+void takiroboF1::omniControl(float deg, float spd, float yaw)
 {
   int mt[3];
   int max_value = 0;
   int cut_off = 0;
   uint8_t i = 0;
-  mt[0] = sin(((float)(deg - 60) / 180.0) * M_PI) * spd;
-  mt[1] = sin(((float)(deg - 180) / 180.0) * M_PI) * spd;
-  mt[2] = sin(((float)(deg - 300) / 180.0) * M_PI) * spd;
+  mt[0] = sin(((float)(deg - 60) / 180.0) * M_PI) * spd + yaw;
+  mt[1] = sin(((float)(deg - 180) / 180.0) * M_PI) * spd + yaw;
+  mt[2] = sin(((float)(deg - 300) / 180.0) * M_PI) * spd + yaw;
   max_value = max(max(mt[0], mt[1]), mt[2]);
 
   /*一番大きい数値の部分がspdの入力値になるように最大値変換する*/
   for (i = 0; i < 3; i++)
   {
-    mt[i] = mt[i] / max_value * spd + yaw;
-
-    /*yawを足した時に255(-255)を超えたときの差分を取得する*/
-    if((mt[i] > 255) && 
-       (cut_off > (mt[i] - 255)))
-    {
-      cut_off = mt[i] - 255;      
-    }
-    if((mt[i] < -255) &&
-       (cut_off < (mt[i] + 255)))
-    {
-      cut_off = mt[i] + 255;      
-    }
-  }
-
-  /*取得した差分を全体から差し引いてあげる*/
-  for (i = 0; i < 3; i++)
-  {
-    if(cut_off < 0)
-    {
-      mt[i] = mt[i] + cut_off;
-    }
-    else{
-      mt[i] = mt[i] - cut_off;
-    }
+    mt[i] =  (float) mt[i] / (float)max_value * spd ;
   }
 
   /*モーターを出力する*/
   motor(mt[0], mt[1], mt[2]);
+  
 }
 
 ///////////////////////////

@@ -51,7 +51,7 @@ public:
     void init(void);
     void motor(int left, int right);
     void motor(int spd1, int spd2, int spd3);
-    void omniControl(int deg, int spd, int yaw);
+    void omniControl(float deg, float spd, float yaw);
     int getIr(DIRECTION dir);
     int getLine(DIRECTION dir);
     int getUSS(void);
