@@ -112,7 +112,7 @@ void takiroboF1::timerISR(void){
 
   /*一定周期ごとに関数を実行*/
   /*タイミングが重なった場合上から優先で実行される*/
-  if((count % 3) == 0){//約100Hz
+  if((count % 5) == 0){//約100Hz
     takiroboF1::azimUpdate();
   }
   else if((count % 23) == 0){//約20Hz
@@ -270,12 +270,19 @@ void takiroboF1::omniControl(float deg, float spd, float yaw)
   mt[0] = sin(((float)(deg - 60) / 180.0) * M_PI) * spd + yaw;
   mt[1] = sin(((float)(deg - 180) / 180.0) * M_PI) * spd + yaw;
   mt[2] = sin(((float)(deg - 300) / 180.0) * M_PI) * spd + yaw;
+
   max_value = max(max(mt[0], mt[1]), mt[2]);
 
-  /*一番大きい数値の部分がspdの入力値になるように最大値変換する*/
   for (i = 0; i < 3; i++)
   {
-    mt[i] =  (float) mt[i] / (float)max_value * spd ;
+    if(mt[i] > 255)
+    {
+      mt[i] = 255;
+    }
+    else if(mt[i] < -255)
+    {
+      mt[i] = -255;
+    }
   }
 
   /*モーターを出力する*/
