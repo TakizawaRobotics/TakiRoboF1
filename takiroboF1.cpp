@@ -219,7 +219,21 @@ void takiroboF1::motor(int spd1, int spd2, int spd3)
   int mt_state[3];
   int mt_power[6];
   int spd[3] = {spd1, spd2, spd3};
-  for (int i = 0; i < 3; i++)
+  int i;
+
+  for (i = 0; i < 3; i++)
+  {
+    if(spd[i] > 255)
+    {
+      spd[i] = 255;
+    }
+    else if(spd[i] < -255)
+    {
+      spd[i] = -255;
+    }
+  }
+  
+  for (i = 0; i < 3; i++)
   {
     if (spd[i] > 0)
     {
@@ -271,19 +285,7 @@ void takiroboF1::omniControl(float deg, float spd, float yaw)
   mt[1] = sin(((float)(deg - 180) / 180.0) * M_PI) * spd + yaw;
   mt[2] = sin(((float)(deg - 300) / 180.0) * M_PI) * spd + yaw;
 
-  max_value = max(max(mt[0], mt[1]), mt[2]);
-
-  for (i = 0; i < 3; i++)
-  {
-    if(mt[i] > 255)
-    {
-      mt[i] = 255;
-    }
-    else if(mt[i] < -255)
-    {
-      mt[i] = -255;
-    }
-  }
+  //max_value = max(max(mt[0], mt[1]), mt[2]);
 
   /*モーターを出力する*/
   motor(mt[0], mt[1], mt[2]);
