@@ -173,7 +173,21 @@ void takiroboF1::motor(int left, int right)
   int mt_state[3];
   int mt_power[6];
   int spd[3] = {left, right, 0};
-  for (int i = 0; i < 3; i++)
+  int i;
+
+  for (i = 0; i < 2; i++)
+  {
+    if(spd[i] > 255)
+    {
+      spd[i] = 255;
+    }
+    else if(spd[i] < -255)
+    {
+      spd[i] = -255;
+    }
+  }
+
+  for (i = 0; i < 3; i++)
   {
     if (spd[i] > 0)
     {
