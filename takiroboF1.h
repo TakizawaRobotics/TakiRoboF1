@@ -52,7 +52,9 @@ public:
     void motor(int left, int right);
     void motor(int spd1, int spd2, int spd3);
     void omniControl(float deg, float spd, float yaw);
+    int getIr(void);
     int getIr(DIRECTION dir);
+    int getLine(void);
     int getLine(DIRECTION dir);
     int getUSS(void);
     bool getBtn(void);

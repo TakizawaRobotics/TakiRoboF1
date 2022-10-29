@@ -122,7 +122,7 @@ void takiroboF1::timerISR(void){
     takiroboF1::btnUpdate();
   }
   else if((count % 101) == 0){//約5Hz
-    takiroboF1::ussUpdate();
+    //takiroboF1::ussUpdate();
   }
   else{
     /*DO NOTHING*/
@@ -340,6 +340,41 @@ int takiroboF1::getUSS(void)
 /*ラインセンサの数値を取得する　　　　*/
 /*メモ：シリアル通信でデータを取得する*/
 //////////////////////////////////
+int takiroboF1::getLine(void)
+{
+  int ret = 0;
+  long last_time = 0;
+
+    /*値の取得を失敗した場合は再度、取得を行う*/
+  while(1){
+    /*シリアルバッファの削除*/
+    lineSerial.flush();
+    lineSerial.write("f");
+
+    /*エラー処理(主に通信ができなかった場合)*/
+    last_time = millis();
+    while (lineSerial.available() == 0){
+      if((millis() - last_time) > 100)
+      {
+        ret = -1;
+        break;
+      }
+    }
+
+    /*ラインセンサ取得*/
+    while (lineSerial.available() > 0)
+    {
+      ret = (int)lineSerial.read();
+    }
+
+    /*値の取得に成功したら終了*/
+    if(ret != -1){
+      break;
+    }
+  }
+  return ret;
+}
+
 int takiroboF1::getLine(DIRECTION dir)
 {
   int ret = 0;
@@ -401,6 +436,12 @@ int takiroboF1::getLine(DIRECTION dir)
 ////////////////////////
 /*赤外線ボールの数値を返す*/
 ////////////////////////
+int takiroboF1::getIr(void){
+  int ret = 0;
+  ret = _ir1;
+  return ret;
+}
+
 int takiroboF1::getIr(DIRECTION dir)
 {
   int ret = 0;
